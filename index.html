@@ -4,252 +4,244 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tuff Shorts v2</title>
+<title>Tuff Shorts</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-
 body{
 margin:0;
 background:black;
+font-family:sans-serif;
 overflow:hidden;
-font-family:'DM Sans',sans-serif;
 }
 
 .feed{
 height:100vh;
-position:relative;
 overflow:hidden;
+position:relative;
 }
 
 .card{
 position:absolute;
-height:100%;
 width:100%;
+height:100%;
 top:0;
 left:0;
-transition:.35s;
-}
-
-.active{transform:translateY(0);opacity:1;z-index:2}
-.above{transform:translateY(-100%);opacity:0}
-.below{transform:translateY(100%);opacity:0}
-
-.overlay{
-position:absolute;
-inset:0;
-background:linear-gradient(0deg,rgba(0,0,0,.9),transparent 60%);
+transition:transform .4s;
 }
 
 video{
-object-fit:cover;
-height:100%;
 width:100%;
+height:100%;
+object-fit:cover;
 }
 
+.overlay{
+position:absolute;
+bottom:0;
+left:0;
+right:0;
+padding:20px;
+background:linear-gradient(transparent,rgba(0,0,0,.8));
+}
+
+.actions{
+position:absolute;
+right:15px;
+bottom:120px;
+display:flex;
+flex-direction:column;
+gap:15px;
+}
+
+.heart{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:90px;
+opacity:0;
+}
+
+.show{
+animation:like .6s;
+}
+
+@keyframes like{
+0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+50%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}
+100%{opacity:0;transform:translate(-50%,-50%) scale(1)}
+}
+
+.topbar{
+position:absolute;
+top:0;
+left:0;
+right:0;
+display:flex;
+justify-content:space-between;
+padding:15px;
+z-index:10;
+}
 </style>
 </head>
 
 <body>
 
-<!-- TOP BAR -->
+<div class="topbar text-white">
+<h1 class="text-xl font-bold">TUFF SHORTS</h1>
 
-<div class="absolute top-0 left-0 right-0 flex justify-between items-center px-4 py-3 z-30">
-
-<div class="flex items-center gap-2">
-<div class="bg-pink-500 w-8 h-8 flex items-center justify-center rounded">
-<i data-lucide="zap" class="text-white w-4 h-4"></i>
+<div class="flex gap-4">
+<button onclick="upload()">➕</button>
+<button onclick="profile()">👤</button>
 </div>
-
-<span class="text-white text-xl" style="font-family:Bebas Neue">TUFF SHORTS</span>
 </div>
-
-<div class="flex gap-3">
-
-<button id="uploadBtn" class="text-white">
-<i data-lucide="plus"></i>
-</button>
-
-<button id="profileBtn" class="text-white">
-<i data-lucide="user"></i>
-</button>
-
-</div>
-
-</div>
-
-<!-- FEED -->
 
 <div id="feed" class="feed"></div>
 
-<input type="file" id="videoInput" accept="video/*" class="hidden">
+<input type="file" id="videoInput" accept="video/*" hidden>
 
 <script>
 
-let shorts=JSON.parse(localStorage.getItem("shorts"))||[]
+const storage={
+get:(k,d)=>JSON.parse(localStorage.getItem(k))||d,
+set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
+}
 
-let user=JSON.parse(localStorage.getItem("user"))
-
-if(shorts.length===0){
-
-shorts=[
-{
+let shorts=storage.get("shorts",[{
 id:1,
-creator:"@demo",
 name:"Demo User",
+creator:"@demo",
 desc:"Welcome to Tuff Shorts 🔥",
-video:"",
 emoji:"🔥",
 likes:0,
-saves:0,
 comments:[]
-}
-]
+}])
 
-}
+let user=storage.get("user",null)
 
-function save(){
-localStorage.setItem("shorts",JSON.stringify(shorts))
-}
+let index=0
+let lastTap=0
 
-function format(n){
-if(n>1000000)return (n/1000000).toFixed(1)+"M"
-if(n>1000)return (n/1000).toFixed(1)+"K"
-return n
-}
+function build(post,i){
 
-let current=0
-
-function build(short,i){
-
-let card=document.createElement("div")
-
-card.className="card "+(i==0?"active":"below")
-
-card.dataset.index=i
+const card=document.createElement("div")
+card.className="card"
+card.style.transform=`translateY(${i*100}%)`
 
 card.innerHTML=`
+${post.video ?
+`<video src="${post.video}" autoplay loop muted></video>`
+:
+`<div class="flex items-center justify-center h-full text-8xl">${post.emoji}</div>`
+}
 
-${short.video?`<video autoplay muted loop src="${short.video}"></video>`:
-`<div style="background:#111;height:100%;display:flex;align-items:center;justify-content:center;font-size:100px">${short.emoji}</div>`}
+<div class="overlay text-white">
 
-<div class="overlay"></div>
+<b>${post.name}</b><br>
+<span class="text-sm">${post.creator}</span>
 
-<div class="absolute bottom-20 left-4 right-4 text-white">
-
-<div class="flex justify-between">
-
-<div>
-
-<p class="font-bold">${short.name}</p>
-<p class="text-xs opacity-70">${short.creator}</p>
-
-<p class="mt-2 text-sm">${short.desc}</p>
+<p class="mt-2">${post.desc}</p>
 
 </div>
 
-<div class="flex flex-col items-center gap-4">
+<div class="actions text-white">
 
-<button onclick="like(${short.id},this)">
-<i data-lucide="heart"></i>
-<span class="text-xs">${format(short.likes)}</span>
+<button onclick="like(${post.id})">
+❤️ ${post.likes}
 </button>
 
-<button onclick="savePost(${short.id})">
-<i data-lucide="bookmark"></i>
-<span class="text-xs">${format(short.saves)}</span>
-</button>
-
-<button onclick="comment(${short.id})">
-<i data-lucide="message-circle"></i>
-<span class="text-xs">${short.comments.length}</span>
+<button onclick="comment(${post.id})">
+💬 ${post.comments.length}
 </button>
 
 </div>
 
-</div>
-
-</div>
+<div class="heart">❤️</div>
 `
 
+card.onclick=()=>{
+
+let now=Date.now()
+
+if(now-lastTap<300){
+like(post.id)
+showHeart(card)
+}
+
+lastTap=now
+
+}
+
 return card
+}
+
+function showHeart(card){
+
+const h=card.querySelector(".heart")
+h.classList.add("show")
+
+setTimeout(()=>{
+h.classList.remove("show")
+},600)
 
 }
 
 function render(){
 
 const feed=document.getElementById("feed")
-
 feed.innerHTML=""
 
-shorts.forEach((s,i)=>feed.appendChild(build(s,i)))
-
-lucide.createIcons()
+shorts.forEach((p,i)=>{
+feed.appendChild(build(p,i))
+})
 
 }
 
 render()
 
-function navigate(dir){
+function swipe(dir){
 
-let next=current+dir
+index+=dir
 
-if(next<0||next>=shorts.length)return
+if(index<0) index=0
+if(index>=shorts.length) index=shorts.length-1
 
-let cards=document.querySelectorAll(".card")
+document.querySelectorAll(".card").forEach((c,i)=>{
 
-cards.forEach(c=>{
-
-let i=parseInt(c.dataset.index)
-
-c.className="card "+(i==next?"active":i<next?"above":"below")
+c.style.transform=`translateY(${(i-index)*100}%)`
 
 })
-
-current=next
 
 }
 
 document.addEventListener("wheel",e=>{
-navigate(e.deltaY>0?1:-1)
+swipe(e.deltaY>0?1:-1)
 })
 
-let startY=0
+let startY
 
 document.addEventListener("touchstart",e=>{
 startY=e.touches[0].clientY
 })
 
 document.addEventListener("touchend",e=>{
-let diff=startY-e.changedTouches[0].clientY
-if(Math.abs(diff)>50){
-navigate(diff>0?1:-1)
-}
+
+let endY=e.changedTouches[0].clientY
+
+if(startY-endY>50) swipe(1)
+if(endY-startY>50) swipe(-1)
+
 })
 
-function like(id,btn){
+function like(id){
 
-let s=shorts.find(x=>x.id==id)
+const post=shorts.find(p=>p.id==id)
 
-s.likes++
+post.likes++
 
-btn.querySelector("span").textContent=format(s.likes)
-
-save()
-
-}
-
-function savePost(id){
-
-let s=shorts.find(x=>x.id==id)
-
-s.saves++
-
-save()
+storage.set("shorts",shorts)
 
 render()
 
@@ -257,98 +249,84 @@ render()
 
 function comment(id){
 
-let text=prompt("Add comment")
+let text=prompt("Comment")
 
-if(!text)return
+if(!text) return
 
-let s=shorts.find(x=>x.id==id)
+const post=shorts.find(p=>p.id==id)
 
-s.comments.push({user:user?user.name:"@anon",text})
+post.comments.push({
+user:user?user.name:"anon",
+text
+})
 
-save()
+storage.set("shorts",shorts)
 
 render()
 
 }
 
-document.getElementById("profileBtn").onclick=()=>{
+function profile(){
 
 if(!user){
 
-let name=prompt("Enter username")
+let name=prompt("Choose username")
 
-if(!name)return
+if(!name) return
 
 user={name}
 
-localStorage.setItem("user",JSON.stringify(user))
+storage.set("user",user)
 
-alert("Signed in")
+alert("Logged in!")
 
 }else{
 
-if(confirm("Sign out?")){
-localStorage.removeItem("user")
+if(confirm("Logout?")){
 user=null
+storage.set("user",null)
 }
 
 }
 
 }
 
-document.getElementById("uploadBtn").onclick=()=>{
+function upload(){
 
 if(!user){
-
-alert("Sign in first")
-
+alert("Login first")
 return
-
 }
 
 document.getElementById("videoInput").click()
 
 }
 
-document.getElementById("videoInput").onchange=(e)=>{
+videoInput.onchange=e=>{
 
 let file=e.target.files[0]
 
-if(!file)return
+if(!file) return
 
 let url=URL.createObjectURL(file)
 
-let desc=prompt("Video description")
+let desc=prompt("Video description")||"New video"
 
 shorts.unshift({
-
 id:Date.now(),
-
-creator:user.name,
-
 name:user.name,
-
-desc:desc||"New post",
-
+creator:user.name,
+desc,
 video:url,
-
-emoji:"🎥",
-
 likes:0,
-
-saves:0,
-
 comments:[]
-
 })
 
-save()
+storage.set("shorts",shorts)
 
 render()
 
 }
-
-lucide.createIcons()
 
 </script>
 
