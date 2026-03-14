@@ -1,396 +1,160 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tuff Shorts</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-
-body{
-margin:0;
-background:#0f0f0f;
-font-family:sans-serif;
-overflow:hidden;
-color:white;
-}
-
-/* CENTER CONTAINER LIKE YOUTUBE SHORTS */
-
-.app{
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-}
-
-/* SHORTS FRAME */
-
-.frame{
-position:relative;
-width:360px;
-height:640px;
-background:black;
-overflow:hidden;
-border-radius:16px;
-box-shadow:0 0 40px rgba(0,0,0,.8);
-}
-
-/* FULLSCREEN ON PHONE */
-
-@media (max-width:600px){
-
-.frame{
-width:100%;
-height:100vh;
-border-radius:0;
-}
-
-}
-
-/* FEED */
-
-.feed{
-position:relative;
-height:100%;
-width:100%;
-overflow:hidden;
-}
-
-/* CARD */
-
-.card{
-position:absolute;
-width:100%;
-height:100%;
-transition:transform .4s;
-}
-
-/* VIDEO */
-
-video{
-width:100%;
-height:100%;
-object-fit:cover;
-}
-
-/* TEXT OVERLAY */
-
-.overlay{
-position:absolute;
-bottom:0;
-left:0;
-right:0;
-padding:16px;
-background:linear-gradient(transparent,rgba(0,0,0,.9));
-}
-
-/* ACTION BUTTONS */
-
-.actions{
-position:absolute;
-right:12px;
-bottom:120px;
-display:flex;
-flex-direction:column;
-gap:16px;
-text-align:center;
-}
-
-.actions button{
-font-size:22px;
-}
-
-/* LIKE HEART */
-
-.heart{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-font-size:90px;
-opacity:0;
-}
-
-.show{
-animation:like .6s;
-}
-
-@keyframes like{
-0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
-50%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}
-100%{opacity:0;transform:translate(-50%,-50%) scale(1)}
-}
-
-/* TOP BAR */
-
-.topbar{
-position:absolute;
-top:0;
-left:0;
-right:0;
-padding:12px;
-display:flex;
-justify-content:space-between;
-font-weight:bold;
-}
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tuff Shorts</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin:0; padding:0; height:100%; width:100%; background:#000; font-family:'DM Sans', sans-serif; overflow:hidden; }
+    .app-shell { height:100%; width:100%; position:relative; display:flex; flex-direction:column; }
+    .short-card { position:absolute; top:0; left:0; width:100%; height:100%; transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease; will-change: transform, opacity; display:flex; justify-content:center; align-items:center; background:#000; overflow:hidden; }
+    .short-card video, .short-card .emoji-bg { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; }
+    .emoji-bg { display:flex; justify-content:center; align-items:center; font-size:120px; opacity:0.15; }
+    .short-card.active { transform: translateY(0); opacity:1; z-index:2; }
+    .short-card.above { transform: translateY(-100%); opacity:0; z-index:1; }
+    .short-card.below { transform: translateY(100%); opacity:0; z-index:1; }
+    .overlay { position:absolute; inset:0; background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 30%, transparent 55%); z-index:1; }
+    .top-bar { position:absolute; top:0; left:0; right:0; height:60px; display:flex; justify-between; align-items:center; padding:0 16px; z-index:5; }
+    .bottom-bar { position:absolute; right:16px; bottom:80px; display:flex; flex-direction:column; gap:20px; z-index:5; align-items:center; }
+    .action-btn { display:flex; flex-direction:column; align-items:center; color:#fff; cursor:pointer; }
+    .action-btn .count { font-size:11px; margin-top:4px; }
+    .short-info { position:absolute; bottom:16px; left:16px; z-index:5; color:#fff; max-width:70%; }
+    .short-info .name { font-weight:bold; font-size:14px; }
+    .short-info .desc { margin-top:4px; font-size:12px; }
+    .create-btn-wrap { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); z-index:6; }
+    .comment-panel { position:absolute; bottom:0; left:0; right:0; background:#1a1a1a; border-radius:16px 16px 0 0; transform:translateY(100%); transition:transform 0.3s ease; max-height:60%; z-index:10; }
+    .comment-panel.open { transform:translateY(0); }
+    .comment-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:9; }
+    .comment-backdrop.visible { opacity:1; pointer-events:auto; }
+    input, textarea { color:#fff; background:rgba(255,255,255,0.1); border:none; border-radius:12px; padding:8px; width:100%; }
+  </style>
 </head>
-
 <body>
+<div class="app-shell" id="appShell">
+  <!-- Top bar -->
+  <div class="top-bar">
+    <span class="brand-font text-white text-xl">TUFF SHORTS</span>
+    <button id="profileNav"><i data-lucide="user" style="color:white;"></i></button>
+  </div>
 
-<div class="app">
+  <!-- Feed container -->
+  <main id="feedContainer" class="flex-1 relative"></main>
 
-<div class="frame">
+  <!-- Create post button -->
+  <div class="create-btn-wrap" id="createBtnWrap">
+    <button style="background:linear-gradient(135deg,#00f2ea,#ff2d55); border:none; padding:8px 16px; border-radius:12px; font-weight:bold;">Create Post</button>
+  </div>
 
-<div class="topbar">
-<span>TUFF SHORTS</span>
-
-<div>
-<button onclick="upload()">➕</button>
-<button onclick="profile()">👤</button>
+  <!-- Comment panel -->
+  <div class="comment-backdrop" id="commentBackdrop"></div>
+  <aside class="comment-panel" id="commentPanel">
+    <div style="padding:16px;">
+      <button id="closeComments">Close</button>
+      <div id="commentList" style="margin-top:16px; max-height:300px; overflow-y:auto;"></div>
+      <input id="commentInput" placeholder="Add a comment...">
+      <button id="commentSubmit">Post</button>
+    </div>
+  </aside>
 </div>
+
+<!-- Create Post Modal -->
+<div id="createPostModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:50; display:flex; justify-content:center; align-items:center;">
+  <div style="background:#1a1a1a; padding:16px; border-radius:12px; width:90%; max-width:400px;">
+    <h2 class="text-white font-bold">Create Post</h2>
+    <textarea id="postDesc" rows="3" placeholder="Description..."></textarea>
+    <input type="file" id="videoFile" accept="video/*">
+    <button id="postSubmit">Post</button>
+    <button id="closeCreatePost">Close</button>
+  </div>
 </div>
-
-<div id="feed" class="feed"></div>
-
-</div>
-
-</div>
-
-<input type="file" id="videoInput" hidden accept="video/*">
 
 <script>
+const shorts = [];
+let currentIndex = 0;
+let activeCommentShort = null;
+let user = { name: "You" };
 
-const storage={
-get:(k,d)=>JSON.parse(localStorage.getItem(k))||d,
-set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
+// Helper
+function createShortCard(short,index){
+  const card=document.createElement('div');
+  card.className='short-card '+(index===currentIndex?'active':'below');
+  card.dataset.index=index;
+  card.innerHTML=`
+    ${short.video ? `<video src="${short.video}" autoplay muted loop playsinline></video>` : `<div class="emoji-bg">${short.emoji||'🔥'}</div>`}
+    <div class="overlay"></div>
+    <div class="short-info">
+      <div class="name">${short.name}</div>
+      <div class="desc">${short.desc}</div>
+    </div>
+    <div class="bottom-bar">
+      <div class="action-btn like-btn">❤️ <span class="count">${short.likes||0}</span></div>
+      <div class="action-btn comment-btn">💬 <span class="count">${short.comments?.length||0}</span></div>
+      <div class="action-btn save-btn">🔖</div>
+    </div>
+  `;
+  return card;
 }
 
-let shorts=storage.get("shorts",[{
-id:1,
-name:"Demo",
-creator:"@demo",
-desc:"Welcome to Tuff Shorts 🔥",
-emoji:"🔥",
-likes:0,
-comments:[]
-}])
-
-let user=storage.get("user",null)
-
-let index=0
-let lastTap=0
-
-function build(post,i){
-
-const card=document.createElement("div")
-
-card.className="card"
-card.style.transform=`translateY(${i*100}%)`
-
-card.innerHTML=`
-
-${post.video
-? `<video src="${post.video}" autoplay muted loop></video>`
-: `<div class="flex items-center justify-center h-full text-8xl">${post.emoji}</div>`
+function renderFeed(){
+  const container=document.getElementById('feedContainer');
+  container.innerHTML='';
+  shorts.forEach((s,i)=>container.appendChild(createShortCard(s,i)));
 }
 
-<div class="overlay">
-
-<b>${post.name}</b><br>
-<span class="text-sm">${post.creator}</span>
-
-<p class="text-sm mt-1">${post.desc}</p>
-
-</div>
-
-<div class="actions">
-
-<button onclick="like(${post.id})">❤️<br>${post.likes}</button>
-
-<button onclick="comment(${post.id})">💬<br>${post.comments.length}</button>
-
-</div>
-
-<div class="heart">❤️</div>
-
-`
-
-card.onclick=()=>{
-
-let now=Date.now()
-
-if(now-lastTap<300){
-
-like(post.id)
-showHeart(card)
-
+function navigate(dir){
+  const next=currentIndex+dir;
+  if(next<0||next>=shorts.length)return;
+  document.querySelectorAll('.short-card').forEach(c=>{
+    const idx=parseInt(c.dataset.index);
+    c.className='short-card '+(idx===next?'active':idx<next?'above':'below');
+  });
+  currentIndex=next;
 }
 
-lastTap=now
-
-}
-
-return card
-
-}
-
-function showHeart(card){
-
-const heart=card.querySelector(".heart")
-
-heart.classList.add("show")
-
-setTimeout(()=>{
-heart.classList.remove("show")
-},600)
-
-}
-
-function render(){
-
-const feed=document.getElementById("feed")
-
-feed.innerHTML=""
-
-shorts.forEach((p,i)=>{
-feed.appendChild(build(p,i))
-})
-
-}
-
-render()
-
-function swipe(dir){
-
-index+=dir
-
-if(index<0) index=0
-if(index>=shorts.length) index=shorts.length-1
-
-document.querySelectorAll(".card").forEach((c,i)=>{
-
-c.style.transform=`translateY(${(i-index)*100}%)`
-
-})
-
-}
-
-document.addEventListener("wheel",e=>{
-swipe(e.deltaY>0?1:-1)
-})
-
-let startY
-
-document.addEventListener("touchstart",e=>{
-startY=e.touches[0].clientY
-})
-
-document.addEventListener("touchend",e=>{
-
-let end=e.changedTouches[0].clientY
-
-if(startY-end>50) swipe(1)
-if(end-startY>50) swipe(-1)
-
-})
-
-function like(id){
-
-const p=shorts.find(x=>x.id==id)
-
-p.likes++
-
-storage.set("shorts",shorts)
-
-render()
-
-}
-
-function comment(id){
-
-let text=prompt("Comment")
-
-if(!text) return
-
-const p=shorts.find(x=>x.id==id)
-
-p.comments.push({text})
-
-storage.set("shorts",shorts)
-
-render()
-
-}
-
-function profile(){
-
-if(!user){
-
-let name=prompt("Username")
-
-if(!name) return
-
-user={name}
-
-storage.set("user",user)
-
-alert("Logged in")
-
-}else{
-
-if(confirm("Logout?")){
-user=null
-storage.set("user",null)
-}
-
-}
-
-}
-
-function upload(){
-
-if(!user){
-alert("Login first")
-return
-}
-
-videoInput.click()
-
-}
-
-videoInput.onchange=e=>{
-
-let file=e.target.files[0]
-
-if(!file) return
-
-let url=URL.createObjectURL(file)
-
-let desc=prompt("Video description")||"New post"
-
-shorts.unshift({
-id:Date.now(),
-name:user.name,
-creator:user.name,
-desc,
-video:url,
-likes:0,
-comments:[]
-})
-
-storage.set("shorts",shorts)
-
-render()
-
-}
-
+document.getElementById('feedContainer').addEventListener('wheel',e=>{ if(Math.abs(e.deltaY)>30) navigate(e.deltaY>0?1:-1); });
+document.addEventListener('keydown',e=>{ if(e.key==='ArrowDown') navigate(1); if(e.key==='ArrowUp') navigate(-1); });
+
+// Comment panel
+document.getElementById('feedContainer').addEventListener('click',e=>{
+  if(e.target.closest('.comment-btn')){
+    activeCommentShort=shorts[currentIndex];
+    document.getElementById('commentPanel').classList.add('open');
+    document.getElementById('commentBackdrop').classList.add('visible');
+    const list=document.getElementById('commentList');
+    list.innerHTML=activeCommentShort.comments?.map(c=>`<div>${c.user}: ${c.text}</div>`).join('')||'No comments';
+  }
+});
+document.getElementById('closeComments').onclick=e=>{
+  document.getElementById('commentPanel').classList.remove('open');
+  document.getElementById('commentBackdrop').classList.remove('visible');
+};
+
+// Create post
+const createModal=document.getElementById('createPostModal');
+document.getElementById('createBtnWrap').onclick=()=>{ createModal.style.display='flex'; };
+document.getElementById('closeCreatePost').onclick=()=>{ createModal.style.display='none'; };
+
+document.getElementById('postSubmit').onclick=()=>{
+  const file=document.getElementById('videoFile').files[0];
+  const desc=document.getElementById('postDesc').value||'';
+  if(!file) return alert('Select a video');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    shorts.unshift({id:Date.now(),name:user.name,desc,video:e.target.result,likes:0,comments:[],emoji:'🔥'});
+    createModal.style.display='none';
+    document.getElementById('postDesc').value='';
+    document.getElementById('videoFile').value='';
+    renderFeed();
+  };
+  reader.readAsDataURL(file);
+};
+
+// Initial render
+renderFeed();
+lucide.createIcons();
 </script>
-
 </body>
 </html>
-
