@@ -1,0 +1,357 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuff Shorts v2</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+margin:0;
+background:black;
+overflow:hidden;
+font-family:'DM Sans',sans-serif;
+}
+
+.feed{
+height:100vh;
+position:relative;
+overflow:hidden;
+}
+
+.card{
+position:absolute;
+height:100%;
+width:100%;
+top:0;
+left:0;
+transition:.35s;
+}
+
+.active{transform:translateY(0);opacity:1;z-index:2}
+.above{transform:translateY(-100%);opacity:0}
+.below{transform:translateY(100%);opacity:0}
+
+.overlay{
+position:absolute;
+inset:0;
+background:linear-gradient(0deg,rgba(0,0,0,.9),transparent 60%);
+}
+
+video{
+object-fit:cover;
+height:100%;
+width:100%;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- TOP BAR -->
+
+<div class="absolute top-0 left-0 right-0 flex justify-between items-center px-4 py-3 z-30">
+
+<div class="flex items-center gap-2">
+<div class="bg-pink-500 w-8 h-8 flex items-center justify-center rounded">
+<i data-lucide="zap" class="text-white w-4 h-4"></i>
+</div>
+
+<span class="text-white text-xl" style="font-family:Bebas Neue">TUFF SHORTS</span>
+</div>
+
+<div class="flex gap-3">
+
+<button id="uploadBtn" class="text-white">
+<i data-lucide="plus"></i>
+</button>
+
+<button id="profileBtn" class="text-white">
+<i data-lucide="user"></i>
+</button>
+
+</div>
+
+</div>
+
+<!-- FEED -->
+
+<div id="feed" class="feed"></div>
+
+<input type="file" id="videoInput" accept="video/*" class="hidden">
+
+<script>
+
+let shorts=JSON.parse(localStorage.getItem("shorts"))||[]
+
+let user=JSON.parse(localStorage.getItem("user"))
+
+if(shorts.length===0){
+
+shorts=[
+{
+id:1,
+creator:"@demo",
+name:"Demo User",
+desc:"Welcome to Tuff Shorts 🔥",
+video:"",
+emoji:"🔥",
+likes:0,
+saves:0,
+comments:[]
+}
+]
+
+}
+
+function save(){
+localStorage.setItem("shorts",JSON.stringify(shorts))
+}
+
+function format(n){
+if(n>1000000)return (n/1000000).toFixed(1)+"M"
+if(n>1000)return (n/1000).toFixed(1)+"K"
+return n
+}
+
+let current=0
+
+function build(short,i){
+
+let card=document.createElement("div")
+
+card.className="card "+(i==0?"active":"below")
+
+card.dataset.index=i
+
+card.innerHTML=`
+
+${short.video?`<video autoplay muted loop src="${short.video}"></video>`:
+`<div style="background:#111;height:100%;display:flex;align-items:center;justify-content:center;font-size:100px">${short.emoji}</div>`}
+
+<div class="overlay"></div>
+
+<div class="absolute bottom-20 left-4 right-4 text-white">
+
+<div class="flex justify-between">
+
+<div>
+
+<p class="font-bold">${short.name}</p>
+<p class="text-xs opacity-70">${short.creator}</p>
+
+<p class="mt-2 text-sm">${short.desc}</p>
+
+</div>
+
+<div class="flex flex-col items-center gap-4">
+
+<button onclick="like(${short.id},this)">
+<i data-lucide="heart"></i>
+<span class="text-xs">${format(short.likes)}</span>
+</button>
+
+<button onclick="savePost(${short.id})">
+<i data-lucide="bookmark"></i>
+<span class="text-xs">${format(short.saves)}</span>
+</button>
+
+<button onclick="comment(${short.id})">
+<i data-lucide="message-circle"></i>
+<span class="text-xs">${short.comments.length}</span>
+</button>
+
+</div>
+
+</div>
+
+</div>
+`
+
+return card
+
+}
+
+function render(){
+
+const feed=document.getElementById("feed")
+
+feed.innerHTML=""
+
+shorts.forEach((s,i)=>feed.appendChild(build(s,i)))
+
+lucide.createIcons()
+
+}
+
+render()
+
+function navigate(dir){
+
+let next=current+dir
+
+if(next<0||next>=shorts.length)return
+
+let cards=document.querySelectorAll(".card")
+
+cards.forEach(c=>{
+
+let i=parseInt(c.dataset.index)
+
+c.className="card "+(i==next?"active":i<next?"above":"below")
+
+})
+
+current=next
+
+}
+
+document.addEventListener("wheel",e=>{
+navigate(e.deltaY>0?1:-1)
+})
+
+let startY=0
+
+document.addEventListener("touchstart",e=>{
+startY=e.touches[0].clientY
+})
+
+document.addEventListener("touchend",e=>{
+let diff=startY-e.changedTouches[0].clientY
+if(Math.abs(diff)>50){
+navigate(diff>0?1:-1)
+}
+})
+
+function like(id,btn){
+
+let s=shorts.find(x=>x.id==id)
+
+s.likes++
+
+btn.querySelector("span").textContent=format(s.likes)
+
+save()
+
+}
+
+function savePost(id){
+
+let s=shorts.find(x=>x.id==id)
+
+s.saves++
+
+save()
+
+render()
+
+}
+
+function comment(id){
+
+let text=prompt("Add comment")
+
+if(!text)return
+
+let s=shorts.find(x=>x.id==id)
+
+s.comments.push({user:user?user.name:"@anon",text})
+
+save()
+
+render()
+
+}
+
+document.getElementById("profileBtn").onclick=()=>{
+
+if(!user){
+
+let name=prompt("Enter username")
+
+if(!name)return
+
+user={name}
+
+localStorage.setItem("user",JSON.stringify(user))
+
+alert("Signed in")
+
+}else{
+
+if(confirm("Sign out?")){
+localStorage.removeItem("user")
+user=null
+}
+
+}
+
+}
+
+document.getElementById("uploadBtn").onclick=()=>{
+
+if(!user){
+
+alert("Sign in first")
+
+return
+
+}
+
+document.getElementById("videoInput").click()
+
+}
+
+document.getElementById("videoInput").onchange=(e)=>{
+
+let file=e.target.files[0]
+
+if(!file)return
+
+let url=URL.createObjectURL(file)
+
+let desc=prompt("Video description")
+
+shorts.unshift({
+
+id:Date.now(),
+
+creator:user.name,
+
+name:user.name,
+
+desc:desc||"New post",
+
+video:url,
+
+emoji:"🎥",
+
+likes:0,
+
+saves:0,
+
+comments:[]
+
+})
+
+save()
+
+render()
+
+}
+
+lucide.createIcons()
+
+</script>
+
+</body>
+</html>
+```
