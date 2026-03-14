@@ -9,27 +9,67 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
+
 body{
 margin:0;
-background:black;
+background:#0f0f0f;
 font-family:sans-serif;
+overflow:hidden;
+color:white;
+}
+
+/* CENTER CONTAINER LIKE YOUTUBE SHORTS */
+
+.app{
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+/* SHORTS FRAME */
+
+.frame{
+position:relative;
+width:360px;
+height:640px;
+background:black;
+overflow:hidden;
+border-radius:16px;
+box-shadow:0 0 40px rgba(0,0,0,.8);
+}
+
+/* FULLSCREEN ON PHONE */
+
+@media (max-width:600px){
+
+.frame{
+width:100%;
+height:100vh;
+border-radius:0;
+}
+
+}
+
+/* FEED */
+
+.feed{
+position:relative;
+height:100%;
+width:100%;
 overflow:hidden;
 }
 
-.feed{
-height:100vh;
-overflow:hidden;
-position:relative;
-}
+/* CARD */
 
 .card{
 position:absolute;
 width:100%;
 height:100%;
-top:0;
-left:0;
 transition:transform .4s;
 }
+
+/* VIDEO */
 
 video{
 width:100%;
@@ -37,23 +77,34 @@ height:100%;
 object-fit:cover;
 }
 
+/* TEXT OVERLAY */
+
 .overlay{
 position:absolute;
 bottom:0;
 left:0;
 right:0;
-padding:20px;
-background:linear-gradient(transparent,rgba(0,0,0,.8));
+padding:16px;
+background:linear-gradient(transparent,rgba(0,0,0,.9));
 }
+
+/* ACTION BUTTONS */
 
 .actions{
 position:absolute;
-right:15px;
+right:12px;
 bottom:120px;
 display:flex;
 flex-direction:column;
-gap:15px;
+gap:16px;
+text-align:center;
 }
+
+.actions button{
+font-size:22px;
+}
+
+/* LIKE HEART */
 
 .heart{
 position:absolute;
@@ -74,25 +125,32 @@ animation:like .6s;
 100%{opacity:0;transform:translate(-50%,-50%) scale(1)}
 }
 
+/* TOP BAR */
+
 .topbar{
 position:absolute;
 top:0;
 left:0;
 right:0;
+padding:12px;
 display:flex;
 justify-content:space-between;
-padding:15px;
-z-index:10;
+font-weight:bold;
 }
+
 </style>
 </head>
 
 <body>
 
-<div class="topbar text-white">
-<h1 class="text-xl font-bold">TUFF SHORTS</h1>
+<div class="app">
 
-<div class="flex gap-4">
+<div class="frame">
+
+<div class="topbar">
+<span>TUFF SHORTS</span>
+
+<div>
 <button onclick="upload()">➕</button>
 <button onclick="profile()">👤</button>
 </div>
@@ -100,7 +158,11 @@ z-index:10;
 
 <div id="feed" class="feed"></div>
 
-<input type="file" id="videoInput" accept="video/*" hidden>
+</div>
+
+</div>
+
+<input type="file" id="videoInput" hidden accept="video/*">
 
 <script>
 
@@ -111,7 +173,7 @@ set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
 
 let shorts=storage.get("shorts",[{
 id:1,
-name:"Demo User",
+name:"Demo",
 creator:"@demo",
 desc:"Welcome to Tuff Shorts 🔥",
 emoji:"🔥",
@@ -127,38 +189,36 @@ let lastTap=0
 function build(post,i){
 
 const card=document.createElement("div")
+
 card.className="card"
 card.style.transform=`translateY(${i*100}%)`
 
 card.innerHTML=`
-${post.video ?
-`<video src="${post.video}" autoplay loop muted></video>`
-:
-`<div class="flex items-center justify-center h-full text-8xl">${post.emoji}</div>`
+
+${post.video
+? `<video src="${post.video}" autoplay muted loop></video>`
+: `<div class="flex items-center justify-center h-full text-8xl">${post.emoji}</div>`
 }
 
-<div class="overlay text-white">
+<div class="overlay">
 
 <b>${post.name}</b><br>
 <span class="text-sm">${post.creator}</span>
 
-<p class="mt-2">${post.desc}</p>
+<p class="text-sm mt-1">${post.desc}</p>
 
 </div>
 
-<div class="actions text-white">
+<div class="actions">
 
-<button onclick="like(${post.id})">
-❤️ ${post.likes}
-</button>
+<button onclick="like(${post.id})">❤️<br>${post.likes}</button>
 
-<button onclick="comment(${post.id})">
-💬 ${post.comments.length}
-</button>
+<button onclick="comment(${post.id})">💬<br>${post.comments.length}</button>
 
 </div>
 
 <div class="heart">❤️</div>
+
 `
 
 card.onclick=()=>{
@@ -166,8 +226,10 @@ card.onclick=()=>{
 let now=Date.now()
 
 if(now-lastTap<300){
+
 like(post.id)
 showHeart(card)
+
 }
 
 lastTap=now
@@ -175,15 +237,17 @@ lastTap=now
 }
 
 return card
+
 }
 
 function showHeart(card){
 
-const h=card.querySelector(".heart")
-h.classList.add("show")
+const heart=card.querySelector(".heart")
+
+heart.classList.add("show")
 
 setTimeout(()=>{
-h.classList.remove("show")
+heart.classList.remove("show")
 },600)
 
 }
@@ -191,6 +255,7 @@ h.classList.remove("show")
 function render(){
 
 const feed=document.getElementById("feed")
+
 feed.innerHTML=""
 
 shorts.forEach((p,i)=>{
@@ -228,18 +293,18 @@ startY=e.touches[0].clientY
 
 document.addEventListener("touchend",e=>{
 
-let endY=e.changedTouches[0].clientY
+let end=e.changedTouches[0].clientY
 
-if(startY-endY>50) swipe(1)
-if(endY-startY>50) swipe(-1)
+if(startY-end>50) swipe(1)
+if(end-startY>50) swipe(-1)
 
 })
 
 function like(id){
 
-const post=shorts.find(p=>p.id==id)
+const p=shorts.find(x=>x.id==id)
 
-post.likes++
+p.likes++
 
 storage.set("shorts",shorts)
 
@@ -253,12 +318,9 @@ let text=prompt("Comment")
 
 if(!text) return
 
-const post=shorts.find(p=>p.id==id)
+const p=shorts.find(x=>x.id==id)
 
-post.comments.push({
-user:user?user.name:"anon",
-text
-})
+p.comments.push({text})
 
 storage.set("shorts",shorts)
 
@@ -270,7 +332,7 @@ function profile(){
 
 if(!user){
 
-let name=prompt("Choose username")
+let name=prompt("Username")
 
 if(!name) return
 
@@ -278,7 +340,7 @@ user={name}
 
 storage.set("user",user)
 
-alert("Logged in!")
+alert("Logged in")
 
 }else{
 
@@ -298,7 +360,7 @@ alert("Login first")
 return
 }
 
-document.getElementById("videoInput").click()
+videoInput.click()
 
 }
 
@@ -310,7 +372,7 @@ if(!file) return
 
 let url=URL.createObjectURL(file)
 
-let desc=prompt("Video description")||"New video"
+let desc=prompt("Video description")||"New post"
 
 shorts.unshift({
 id:Date.now(),
